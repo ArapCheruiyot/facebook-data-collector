@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Data Collector - Campaign Analytics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header-bar">
+            <div>
+                <h1>📊 Facebook Data Collector</h1>
+                <p class="subtitle">Campaign & Social Media Analytics</p>
+            </div>
+        </div>
+        
+        <!-- Last Post Info -->
+        <div id="lastPostInfo" class="last-post-info"></div>
+        
+        <!-- Input Section -->
+        <div class="input-section">
+            <h3>📝 Paste Facebook Post</h3>
+            <textarea id="postText" rows="6" placeholder="Paste Facebook post content here..."></textarea>
+            
+            <div class="image-url-section">
+                <label>🖼️ Image URL (optional):</label>
+                <input type="text" id="imageUrl" placeholder="Right-click image → Copy Image Address">
+            </div>
+            
+            <!-- Folder Selection Section -->
+            <div class="folder-section" style="margin: 15px 0; padding: 12px; background: #f7fafc; border-radius: 8px; border-left: 4px solid #48bb78;">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <button id="selectFolderBtn" class="btn-secondary" style="background: #48bb78; color: white;">📁 Select Save Folder</button>
+                    <span id="folderStatus" style="font-size: 13px; color: #666;">No folder selected</span>
+                </div>
+                <p style="font-size: 11px; color: #888; margin-top: 8px; margin-bottom: 0;">💡 All your data will be saved to the folder you select. Each user has their own private data.</p>
+            </div>
+            
+            <div class="button-group">
+                <button id="saveBtn" class="btn-primary">💾 Save Post to Your Computer</button>
+                <button id="debugBtn" class="btn-secondary">🔍 Test Date Extraction</button>
+                <button id="testDateBtn" class="btn-secondary" style="background: #9b59b6;">🧪 Test New Date Parser</button>
+            </div>
+            <div id="result"></div>
+        </div>
+        
+        <!-- Keyword Manager Section -->
+        <div class="keyword-manager">
+            <h3>🏷️ Manage Tracked Keywords</h3>
+            <div class="keyword-input-group">
+                <input type="text" id="newKeyword" placeholder="Enter new keyword (e.g., education, health, sports)" class="keyword-input">
+                <button id="addKeywordBtn" class="btn-small">➕ Add Keyword</button>
+            </div>
+            <div id="keywordTags" class="keyword-tags">
+                <p style="color: #999; font-size: 13px;">Loading keywords...</p>
+            </div>
+            <p class="keyword-hint">💡 Posts containing these keywords will be categorized automatically. Click ❌ to remove.</p>
+        </div>
+        
+        <!-- Statistics Section -->
+        <div class="stats-section">
+            <h3>📈 Statistics Dashboard</h3>
+            <div id="stats">Select a folder to see your saved posts...</div>
+        </div>
+        
+        <!-- Export Section -->
+        <div class="export-section">
+            <h3>📥 Export Data</h3>
+            <div class="button-group">
+                <button id="exportPostsBtn" class="export-btn">📄 Export Posts (CSV)</button>
+                <button id="exportCommentsBtn" class="export-btn">💬 Export Comments (CSV)</button>
+                <button id="viewSqliteBtn" class="export-btn">🗄️ About Storage</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/trackedkeywords.js') }}"></script>
+    <script>
+        // ============= FOLDER STORAGE VARIABLES =============
+        let selectedFolderHandle = null;
+        
+        // ============= SELECT FOLDER FUNCTION =============
+        async function selectFolder() {
+            try {
+                const folderHandle = await window.showDirectoryPicker();
+                selectedFolderHandle = folderHandle;
+                
+                // Remember folder name for next time
+                localStorage.setItem('selectedFolderName', folderHandle.name);
+                
+                const statusSpan = document.getElementById('folderStatus');
+                statusSpan.innerHTML = `✅ Folder: ${folderHandle.name}`;
+                statusSpan.style.color = '#22543d';
+                
+                // Try to load existing data
+                await loadExistingData();
+                
+            } catch (error) {
+                console.error('Folder selection cancelled:', error);
+                const statusSpan = document.getElementById('folderStatus');
+                statusSpan.innerHTML = '❌ No folder selected';
+                statusSpan.style.color = '#742a2a';
+            }
+        }
+        
+        // ============= LOAD EXISTING DATA FROM FOLDER =============
+        async function loadExistingData() {
+            if (!selectedFolderHandle) return;
+            
+            try {
+                const postsFile = await selectedFolderHandle.getFileHandle('raymond_posts.csv', { create: false });
+                const postsContent = await readFileContent(postsFile);
+                const posts = parseCSV(postsContent);
+                
+                if (posts.length > 0) {
+                    console.log(`Loaded ${posts.length} existing posts`);
+                    displayStatsFromPosts(posts);
+                } else {
+                    document.getElementById('stats').innerHTML = '<p>No posts yet. Save your first post!</p>';
+                }
+            } catch (error) {
+                console.log('No existing data found - will create new files when you save');
+                document.getElementById('stats').innerHTML = '<p>No saved posts yet. Click "Save Post" to start.</p>';
+            }
+        }
+        
+        // ============= READ FILE CONTENT =============
+        async function readFileContent(fileHandle) {
+            const file = await fileHandle.getFile();
+            const content = await file.text();
+            return content;
+        }
+        
+        // ============= PARSE CSV =============
+        function parseCSV(csvContent) {
+            const lines = csvContent.split('\n');
+            if (lines.length < 2) return [];
+            
+            const headers = lines[0].split(',');
+            const results = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                
+                // Simple CSV parsing
+                const values = [];
+                let currentValue = '';
+                let inQuotes = false;
+                
+                for (let char of lines[i]) {
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(currentValue);
+                        currentValue = '';
+                    } else {
+                        currentValue += char;
+                    }
+                }
+                values.push(currentValue);
+                
+                const row = {};
+                headers.forEach((header, idx) => {
+                    let val = values[idx] || '';
+                    if (val.startsWith('"') && val.endsWith('"')) {
+                        val = val.slice(1, -1);
+                    }
+                    row[header.trim()] = val;
+                });
+                results.push(row);
+            }
+            return results;
+        }
+        
+        // ============= SAVE CSV TO FILE =============
+        async function saveCSVToFile(filename, data) {
+            if (!selectedFolderHandle) {
+                throw new Error('No folder selected');
+            }
+            
+            if (data.length === 0) {
+                const headers = ['post_id', 'post_date', 'saved_at', 'raw_text', 'location', 'action_type', 'people_mentioned', 'emotion', 'key_quote', 'image_url', 'source'];
+                const csvContent = headers.join(',') + '\n';
+                await writeToFile(filename, csvContent);
+                return;
+            }
+            
+            const headers = Object.keys(data[0]);
+            const rows = data.map(row => {
+                return headers.map(header => {
+                    let value = row[header] || '';
+                    if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                        value = `"${value.replace(/"/g, '""')}"`;
+                    }
+                    return value;
+                }).join(',');
+            });
+            const csvContent = [headers.join(','), ...rows].join('\n');
+            
+            await writeToFile(filename, csvContent);
+        }
+        
+        // ============= WRITE TO FILE =============
+        async function writeToFile(filename, content) {
+            const fileHandle = await selectedFolderHandle.getFileHandle(filename, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(content);
+            await writable.close();
+        }
+        
+        // ============= EXTRACT DATA FROM TEXT =============
+        async function extractDataFromText(postText, imageUrl) {
+            try {
+                const response = await fetch('/extract_from_text', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        post_text: postText,
+                        image_url: imageUrl
+                    })
+                });
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Extraction error:', error);
+                return {
+                    post_date: '❌ Not detected',
+                    locations: '',
+                    action_type: 'other',
+                    people_mentioned: '',
+                    key_quote: '',
+                    source: 'unknown',
+                    comments: []
+                };
+            }
+        }
+        
+        // ============= MAIN SAVE FUNCTION =============
+        async function savePost() {
+            const postText = document.getElementById('postText').value;
+            const imageUrl = document.getElementById('imageUrl').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!postText.trim()) {
+                resultDiv.innerHTML = '<div class="error">❌ Please paste a post</div>';
+                return;
+            }
+            
+            // Check if folder is selected
+            if (!selectedFolderHandle) {
+                resultDiv.innerHTML = '<div class="info">📁 Please click "Select Save Folder" first to choose where to save your data...</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="info">💾 Processing and saving to your computer...</div>';
+            
+            try {
+                // Extract data from text
+                const extracted = await extractDataFromText(postText, imageUrl);
+                
+                // Load existing posts
+                let existingPosts = [];
+                let existingComments = [];
+                
+                try {
+                    const postsFile = await selectedFolderHandle.getFileHandle('raymond_posts.csv', { create: false });
+                    const postsContent = await readFileContent(postsFile);
+                    existingPosts = parseCSV(postsContent);
+                } catch (e) {
+                    console.log('No existing posts file, will create new');
+                }
+                
+                try {
+                    const commentsFile = await selectedFolderHandle.getFileHandle('raymond_comments.csv', { create: false });
+                    const commentsContent = await readFileContent(commentsFile);
+                    existingComments = parseCSV(commentsContent);
+                } catch (e) {
+                    console.log('No existing comments file, will create new');
+                }
+                
+                // Create new post
+                const newPostId = existingPosts.length;
+                const newPost = {
+                    post_id: newPostId,
+                    post_date: extracted.post_date || '',
+                    saved_at: new Date().toISOString(),
+                    raw_text: postText.substring(0, 3000),
+                    location: extracted.locations || '',
+                    action_type: extracted.action_type || 'other',
+                    people_mentioned: extracted.people_mentioned || '',
+                    emotion: '',
+                    key_quote: extracted.key_quote || '',
+                    image_url: imageUrl,
+                    source: extracted.source || 'unknown'
+                };
+                
+                existingPosts.push(newPost);
+                
+                // Add comments
+                const comments = extracted.comments || [];
+                comments.forEach(comment => {
+                    existingComments.push({
+                        post_id: newPostId,
+                        commenter_name: comment.commenter_name || '',
+                        comment_text: comment.comment_text || '',
+                        comment_date: comment.comment_date || '',
+                        sentiment: comment.sentiment || 'neutral'
+                    });
+                });
+                
+                // Save both files
+                await saveCSVToFile('raymond_posts.csv', existingPosts);
+                await saveCSVToFile('raymond_comments.csv', existingComments);
+                
+                // Show date warning if needed
+                const dateWarningHtml = extracted.post_date === '❌ Not detected' 
+                    ? '<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin-top: 10px; border-radius: 4px;"><strong>⚠️ Date not detected:</strong> Make sure your post has a Facebook date like "14h", "Yesterday", or "April 28 at 5:40 AM"</div>' 
+                    : '';
+                
+                resultDiv.innerHTML = `
+                    <div class="success">✅ Post saved to your computer!</div>
+                    <div class="extracted">
+                        <strong>📋 Extracted Data:</strong><br>
+                        📅 Date: <strong>${extracted.post_date}</strong><br>
+                        📍 Location: ${extracted.locations || '—'}<br>
+                        🏷️ Action: <span class="action-badge">${extracted.action_type}</span><br>
+                        👥 People: ${extracted.people_mentioned || '—'}<br>
+                        💬 Key quote: "${extracted.key_quote}"<br>
+                        💬 Comments found: ${comments.length}<br>
+                        📁 Saved to: ${selectedFolderHandle.name}
+                    </div>
+                    ${dateWarningHtml}
+                `;
+                
+                document.getElementById('postText').value = '';
+                document.getElementById('imageUrl').value = '';
+                
+                // Refresh stats
+                displayStatsFromPosts(existingPosts);
+                
+            } catch (error) {
+                console.error('Save error:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Error saving: ${error.message}</div>`;
+            }
+        }
+        
+        // ============= DISPLAY STATS FROM POSTS =============
+        function displayStatsFromPosts(posts) {
+            const statsDiv = document.getElementById('stats');
+            if (!statsDiv) return;
+            
+            if (!posts || posts.length === 0) {
+                statsDiv.innerHTML = '<p>No posts yet. Save your first post!</p>';
+                return;
+            }
+            
+            const actionCounts = {};
+            const dateCounts = {
+                withDate: 0,
+                withoutDate: 0
+            };
+            
+            posts.forEach(post => {
+                const action = post.action_type || 'other';
+                actionCounts[action] = (actionCounts[action] || 0) + 1;
+                
+                if (post.post_date && post.post_date !== '' && post.post_date !== '❌ Not detected') {
+                    dateCounts.withDate++;
+                } else {
+                    dateCounts.withoutDate++;
+                }
+            });
+            
+            statsDiv.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">${posts.length}</div>
+                        <div class="stat-label">Total Posts</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${dateCounts.withDate}</div>
+                        <div class="stat-label">With Dates</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${dateCounts.withoutDate}</div>
+                        <div class="stat-label">Missing Dates</div>
+                    </div>
+                </div>
+                <div class="action-breakdown">
+                    <strong>📍 Actions Tracked:</strong>
+                    <div class="action-tags">
+                        ${Object.entries(actionCounts).map(([action, count]) => 
+                            `<span class="action-tag">${action.replace('_', ' ')}: ${count}</span>`
+                        ).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // ============= DEBUG DATE EXTRACTION (OLD) =============
+        async function debugDate() {
+            const postText = document.getElementById('postText').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!postText.trim()) {
+                resultDiv.innerHTML = '<div class="error">❌ Please paste a post first</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="info">🔍 Testing date extraction...</div>';
+            
+            try {
+                const response = await fetch('/debug_date', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({post_text: postText})
+                });
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="extracted">
+                        <strong>🔍 Date Debug Info:</strong><br>
+                        📅 Extracted date: <strong>${data.extracted_date || 'NOT FOUND'}</strong><br>
+                        📝 First few lines:<br>
+                        <code style="font-size: 11px; word-wrap: break-word; display: block; background: #f0f0f0; padding: 8px; margin-top: 5px;">${data.raw_text_preview || '...'}</code>
+                        <br>
+                        💡 <strong>Tip:</strong> Make sure your post contains a Facebook date like:<br>
+                        • "14h" or "2h ago" (hours ago)<br>
+                        • "Yesterday at 5:40 AM"<br>
+                        • "April 28 at 5:40 AM"<br>
+                        • "just now"
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        // ============= NEW TEST DATE EXTRACTION (IMPROVED) =============
+        async function testNewDateParser() {
+            const postText = document.getElementById('postText').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!postText.trim()) {
+                resultDiv.innerHTML = '<div class="error">❌ Please paste a post first</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="info">🧪 Testing new date parser (line-based + regex)...</div>';
+            
+            try {
+                const response = await fetch('/test_date_extraction', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({post_text: postText})
+                });
+                const data = await response.json();
+                
+                const successIcon = data.success ? '✅' : '❌';
+                const successText = data.success ? 'Date found!' : 'No date detected';
+                const successColor = data.success ? '#22543d' : '#742a2a';
+                
+                resultDiv.innerHTML = `
+                    <div class="extracted" style="border-left-color: ${successColor};">
+                        <strong>🧪 New Date Parser Results:</strong><br>
+                        ${successIcon} Status: <strong style="color: ${successColor};">${successText}</strong><br>
+                        📅 Line-based extraction: <strong>${data.line_based_extraction || 'NOT FOUND'}</strong><br>
+                        📅 Regex extraction: <strong>${data.regex_extraction || 'NOT FOUND'}</strong><br>
+                        📏 Text length: ${data.raw_text_length} characters<br>
+                        <br>
+                        <strong>📝 First 5 lines:</strong><br>
+                        <code style="font-size: 11px; word-wrap: break-word; display: block; background: #f0f0f0; padding: 8px; margin-top: 5px;">${data.first_5_lines.map(line => `• ${line}`).join('<br>') || '...'}</code>
+                        <br>
+                        💡 <strong>How to format dates for best results:</strong><br>
+                        • <strong>Hours ago:</strong> "14h", "2h", "3 hours ago"<br>
+                        • <strong>Days ago:</strong> "2d", "yesterday"<br>
+                        • <strong>Exact dates:</strong> "April 28 at 5:40 AM"<br>
+                        • <strong>Just now:</strong> "just now" or "now"
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        // ============= EXPORT FUNCTIONS =============
+        async function exportPostsCSV() {
+            if (!selectedFolderHandle) {
+                alert('Please select a folder first');
+                return;
+            }
+            
+            try {
+                const postsFile = await selectedFolderHandle.getFileHandle('raymond_posts.csv', { create: false });
+                const file = await postsFile.getFile();
+                const url = URL.createObjectURL(file);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'raymond_posts.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                alert('No posts file found. Save some posts first.');
+            }
+        }
+        
+        async function exportCommentsCSV() {
+            if (!selectedFolderHandle) {
+                alert('Please select a folder first');
+                return;
+            }
+            
+            try {
+                const commentsFile = await selectedFolderHandle.getFileHandle('raymond_comments.csv', { create: false });
+                const file = await commentsFile.getFile();
+                const url = URL.createObjectURL(file);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'raymond_comments.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                alert('No comments file found. Save some posts first.');
+            }
+        }
+        
+        function viewSqliteData() {
+            alert('📁 Your data is saved as CSV files in your selected folder.\n\nYou can open them with Excel or any text editor.\n\n📅 Date Extraction Tips:\n• "14h" → converts to absolute date/time\n• "Yesterday" → yesterday at midnight\n• "April 28 at 5:40 AM" → exact date/time\n• If no date found → shows "❌ Not detected"\n\nSQLite is only used when running locally.');
+        }
+        
+        // ============= LOAD STATS (DEFAULT) =============
+        async function loadStats() {
+            // Stats will be loaded when user selects a folder
+            const statsDiv = document.getElementById('stats');
+            if (statsDiv) {
+                statsDiv.innerHTML = '<p>📁 Click "Select Save Folder" to load your saved posts...</p>';
+            }
+        }
+        
+        // ============= RESTORE PREVIOUS FOLDER SELECTION =============
+        async function restoreFolderSelection() {
+            const savedFolderName = localStorage.getItem('selectedFolderName');
+            if (savedFolderName) {
+                const statusSpan = document.getElementById('folderStatus');
+                statusSpan.innerHTML = `📁 Previously used: ${savedFolderName} (click button to reselect)`;
+                statusSpan.style.color = '#666';
+            }
+        }
+        
+        // ============= EVENT LISTENERS =============
+        document.getElementById('saveBtn').addEventListener('click', savePost);
+        document.getElementById('selectFolderBtn').addEventListener('click', selectFolder);
+        document.getElementById('debugBtn').addEventListener('click', debugDate);
+        document.getElementById('testDateBtn').addEventListener('click', testNewDateParser);
+        document.getElementById('exportPostsBtn').addEventListener('click', exportPostsCSV);
+        document.getElementById('exportCommentsBtn').addEventListener('click', exportCommentsCSV);
+        document.getElementById('viewSqliteBtn').addEventListener('click', viewSqliteData);
+        
+        // Initialize
+        loadStats();
+        restoreFolderSelection();
+    </script>
+</body>
+</html>
