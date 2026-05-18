@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facebook Data Collector - Campaign Analytics</title>
+    <title>Facebook Post Extractor - CSV Export Tool</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
@@ -11,198 +11,185 @@
         <!-- Header -->
         <div class="header-bar">
             <div>
-                <h1>📊 Facebook Data Collector</h1>
-                <p class="subtitle">Campaign & Social Media Analytics</p>
+                <h1>📘 Facebook Post Extractor</h1>
+                <p class="subtitle">Extract dates, locations, people, actions & comments – save <strong>CSV</strong>file to your computer</p>
             </div>
         </div>
         
-        <!-- Last Post Info -->
+        <!-- Under Construction Banner -->
+        <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 4px solid #f59e0b; padding: 10px 16px; margin-bottom: 20px; border-radius: 8px; display: flex; align-items: center; gap: 12px;">
+            
+        </div>
+        
+        <!-- Helpful Info Banner -->
+        <div class="info-banner" style="background: #e6f7ff; border-left: 4px solid #1890ff; padding: 12px; margin-bottom: 20px; border-radius: 8px; display: flex; gap: 12px;">
+            <div style="font-size: 24px;">💡</div>
+            <div>
+                <strong>📌 How to get the best results:</strong><br>
+                ✅ Copy the <strong>entire Facebook post</strong> including the author name, date/time, and all comments<br>
+                ✅ The tool automatically extracts: <strong>📅 Date & Time</strong> | <strong>📍 Locations</strong> | <strong>👥 People mentioned</strong> | <strong>💬 All comments</strong> | <strong>🏷️ Action type</strong><br>
+                ✅ Works best when you paste the full post <strong>exactly as it appears on Facebook</strong>
+            </div>
+        </div>
+        
         <div id="lastPostInfo" class="last-post-info"></div>
         
         <!-- Input Section -->
         <div class="input-section">
-            <h3>📝 Paste Facebook Post</h3>
-            <textarea id="postText" rows="6" placeholder="Paste Facebook post content here..."></textarea>
+            <h3>📝 Paste a Facebook post</h3>
+            <textarea id="postText" rows="6" placeholder="Paste the entire Facebook post here...&#10;Example:&#10;Moses Kipkorir&#10;2h ago ·&#10;Great news from our community..."></textarea>
             
             <div class="image-url-section">
                 <label>🖼️ Image URL (optional):</label>
-                <input type="text" id="imageUrl" placeholder="Right-click image → Copy Image Address">
+                <input type="text" id="imageUrl" placeholder="Right‑click image → Copy Image Address">
             </div>
             
-            <!-- Folder Selection Section -->
             <div class="folder-section" style="margin: 15px 0; padding: 12px; background: #f7fafc; border-radius: 8px; border-left: 4px solid #48bb78;">
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <button id="selectFolderBtn" class="btn-secondary" style="background: #48bb78; color: white;">📁 Select Save Folder</button>
+                    <button id="selectFolderBtn" class="btn-secondary" style="background: #48bb78; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">📁 Select Save Folder</button>
                     <span id="folderStatus" style="font-size: 13px; color: #666;">No folder selected</span>
                 </div>
-                <p style="font-size: 11px; color: #888; margin-top: 8px; margin-bottom: 0;">💡 All your data will be saved to the folder you select. Each user has their own private data.</p>
+                <p style="font-size: 11px; color: #888; margin-top: 8px; margin-bottom: 0;">💡 All data stays on your computer. Choose a folder where <strong>facebook_posts.csv</strong> and <strong>facebook_comments.csv</strong> will be stored.</p>
             </div>
             
-            <div class="button-group">
-                <button id="saveBtn" class="btn-primary">💾 Save Post to Your Computer</button>
-                <button id="debugBtn" class="btn-secondary">🔍 Test Date Extraction</button>
-                <button id="testDateBtn" class="btn-secondary" style="background: #9b59b6;">🧪 Test New Date Parser</button>
+            <div class="button-group" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+                <button id="saveBtn" class="btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer;">💾 Save Post to Your Computer</button>
+                <button id="debugBtn" class="btn-secondary" style="background: #6c5ce7; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer;">🔍 Test Date Extraction</button>
+                <button id="testDateBtn" class="btn-secondary" style="background: #9b59b6; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer;">🧪 Advanced Date Test</button>
             </div>
             <div id="result"></div>
         </div>
         
         <!-- Keyword Manager Section -->
-        <div class="keyword-manager">
-            <h3>🏷️ Manage Tracked Keywords</h3>
-            <div class="keyword-input-group">
-                <input type="text" id="newKeyword" placeholder="Enter new keyword (e.g., education, health, sports)" class="keyword-input">
-                <button id="addKeywordBtn" class="btn-small">➕ Add Keyword</button>
+        <div class="keyword-manager" style="background: white; border-radius: 16px; padding: 20px; margin-bottom: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+            <h3 style="margin-bottom: 16px;">🏷️ Tracked Keywords (for action detection)</h3>
+            <div class="keyword-input-group" style="display: flex; gap: 10px; margin-bottom: 16px;">
+                <input type="text" id="newKeyword" placeholder="e.g., football, meeting, wedding" class="keyword-input" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                <button id="addKeywordBtn" class="btn-small" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">➕ Add Keyword</button>
             </div>
-            <div id="keywordTags" class="keyword-tags">
+            <div id="keywordTags" class="keyword-tags" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; min-height: 50px;">
                 <p style="color: #999; font-size: 13px;">Loading keywords...</p>
             </div>
-            <p class="keyword-hint">💡 Posts containing these keywords will be categorized automatically. Click ❌ to remove.</p>
+            <p class="keyword-hint" style="font-size: 12px; color: #666; margin-top: 8px;">💡 When a keyword appears in a post, it becomes the <strong>action_type</strong>. Click ❌ to remove.</p>
         </div>
         
         <!-- Statistics Section -->
-        <div class="stats-section">
-            <h3>📈 Statistics Dashboard</h3>
-            <div id="stats">Select a folder to see your saved posts...</div>
+        <div class="stats-section" style="background: white; border-radius: 16px; padding: 20px; margin-bottom: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+            <h3 style="margin-bottom: 16px;">📈 Your Statistics</h3>
+            <div id="stats">📁 Select a folder to load existing data.</div>
         </div>
         
-        <!-- Export Section -->
-        <div class="export-section">
-            <h3>📥 Export Data</h3>
-            <div class="button-group">
-                <button id="exportPostsBtn" class="export-btn">📄 Export Posts (CSV)</button>
-                <button id="exportCommentsBtn" class="export-btn">💬 Export Comments (CSV)</button>
-                <button id="viewSqliteBtn" class="export-btn">🗄️ About Storage</button>
-            </div>
-        </div>
     </div>
+    
+    <!-- Footer with Copyright and Ownership Notice -->
+    <footer style="text-align: center; padding: 24px; margin-top: 20px; border-top: 1px solid #e0e0e0; background: #f8f9fa;">
+        <div style="max-width: 800px; margin: 0 auto;">
+            <p style="margin: 0 0 8px 0; font-size: 14px; color: #333;">
+                <strong>© 2026 Moses Kipkorir Cheruiyot</strong> | Facebook Post Extractor
+            </p>
+            <p style="margin: 0 0 8px 0; font-size: 12px; color: #666;">
+                Tel. 0114932232| email. cheruiyot171@gmail.com
+            </p>
+            <p style="margin: 0 0 8px 0; font-size: 12px; color: #666;">
+                
+            </p>
+            <p style="margin: 0; font-size: 12px; color: #999;">
+                🔒 Your data never leaves your computer. All processing happens locally in your browser.
+            </p>
+            <p style="margin: 8px 0 0 0; font-size: 11px; color: #bbb;">
+                Version 1.0 | Under active development
+            </p>
+        </div>
+    </footer>
     
     <script src="{{ url_for('static', filename='js/trackedkeywords.js') }}"></script>
     <script>
-        // ============= FOLDER STORAGE VARIABLES =============
+        // ============= FOLDER STORAGE =============
         let selectedFolderHandle = null;
         
-        // ============= SELECT FOLDER FUNCTION =============
+        // Select folder
         async function selectFolder() {
             try {
                 const folderHandle = await window.showDirectoryPicker();
                 selectedFolderHandle = folderHandle;
-                
-                // Remember folder name for next time
                 localStorage.setItem('selectedFolderName', folderHandle.name);
-                
                 const statusSpan = document.getElementById('folderStatus');
                 statusSpan.innerHTML = `✅ Folder: ${folderHandle.name}`;
                 statusSpan.style.color = '#22543d';
-                
-                // Try to load existing data
                 await loadExistingData();
-                
+                // Also reload keywords from folder if exists
+                if (typeof loadKeywords === 'function') loadKeywords();
             } catch (error) {
-                console.error('Folder selection cancelled:', error);
-                const statusSpan = document.getElementById('folderStatus');
-                statusSpan.innerHTML = '❌ No folder selected';
-                statusSpan.style.color = '#742a2a';
+                console.error(error);
+                document.getElementById('folderStatus').innerHTML = '❌ No folder selected';
             }
         }
         
-        // ============= LOAD EXISTING DATA FROM FOLDER =============
+        // Load existing data from folder
         async function loadExistingData() {
             if (!selectedFolderHandle) return;
-            
             try {
-                const postsFile = await selectedFolderHandle.getFileHandle('raymond_posts.csv', { create: false });
-                const postsContent = await readFileContent(postsFile);
-                const posts = parseCSV(postsContent);
-                
-                if (posts.length > 0) {
-                    console.log(`Loaded ${posts.length} existing posts`);
-                    displayStatsFromPosts(posts);
-                } else {
-                    document.getElementById('stats').innerHTML = '<p>No posts yet. Save your first post!</p>';
-                }
-            } catch (error) {
-                console.log('No existing data found - will create new files when you save');
+                const postsFile = await selectedFolderHandle.getFileHandle('facebook_posts.csv', { create: false });
+                const content = await readFileContent(postsFile);
+                const posts = parseCSV(content);
+                if (posts.length) displayStatsFromPosts(posts);
+                else document.getElementById('stats').innerHTML = '<p>No posts yet. Save your first post!</p>';
+            } catch (e) {
                 document.getElementById('stats').innerHTML = '<p>No saved posts yet. Click "Save Post" to start.</p>';
             }
         }
         
-        // ============= READ FILE CONTENT =============
+        // Read file content
         async function readFileContent(fileHandle) {
             const file = await fileHandle.getFile();
-            const content = await file.text();
-            return content;
+            return await file.text();
         }
         
-        // ============= PARSE CSV =============
+        // Parse CSV
         function parseCSV(csvContent) {
             const lines = csvContent.split('\n');
             if (lines.length < 2) return [];
-            
             const headers = lines[0].split(',');
             const results = [];
-            
             for (let i = 1; i < lines.length; i++) {
                 if (!lines[i].trim()) continue;
-                
-                // Simple CSV parsing
                 const values = [];
-                let currentValue = '';
-                let inQuotes = false;
-                
-                for (let char of lines[i]) {
-                    if (char === '"') {
-                        inQuotes = !inQuotes;
-                    } else if (char === ',' && !inQuotes) {
-                        values.push(currentValue);
-                        currentValue = '';
-                    } else {
-                        currentValue += char;
-                    }
+                let current = '', inQuotes = false;
+                for (let ch of lines[i]) {
+                    if (ch === '"') inQuotes = !inQuotes;
+                    else if (ch === ',' && !inQuotes) { values.push(current); current = ''; }
+                    else current += ch;
                 }
-                values.push(currentValue);
-                
+                values.push(current);
                 const row = {};
-                headers.forEach((header, idx) => {
+                headers.forEach((h, idx) => {
                     let val = values[idx] || '';
-                    if (val.startsWith('"') && val.endsWith('"')) {
-                        val = val.slice(1, -1);
-                    }
-                    row[header.trim()] = val;
+                    if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
+                    row[h.trim()] = val;
                 });
                 results.push(row);
             }
             return results;
         }
         
-        // ============= SAVE CSV TO FILE =============
+        // Save CSV to file
         async function saveCSVToFile(filename, data) {
-            if (!selectedFolderHandle) {
-                throw new Error('No folder selected');
-            }
-            
-            if (data.length === 0) {
-                const headers = ['post_id', 'post_date', 'saved_at', 'raw_text', 'location', 'action_type', 'people_mentioned', 'emotion', 'key_quote', 'image_url', 'source'];
-                const csvContent = headers.join(',') + '\n';
-                await writeToFile(filename, csvContent);
+            if (!selectedFolderHandle) throw new Error('No folder selected');
+            if (!data.length) {
+                const headers = ['post_id','post_date','saved_at','raw_text','location','action_type','people_mentioned','emotion','key_quote','image_url','source'];
+                await writeToFile(filename, headers.join(',')+'\n');
                 return;
             }
-            
             const headers = Object.keys(data[0]);
-            const rows = data.map(row => {
-                return headers.map(header => {
-                    let value = row[header] || '';
-                    if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-                        value = `"${value.replace(/"/g, '""')}"`;
-                    }
-                    return value;
-                }).join(',');
-            });
-            const csvContent = [headers.join(','), ...rows].join('\n');
-            
-            await writeToFile(filename, csvContent);
+            const rows = data.map(row => headers.map(h => {
+                let v = row[h] || '';
+                if (typeof v === 'string' && (v.includes(',') || v.includes('"'))) v = `"${v.replace(/"/g, '""')}"`;
+                return v;
+            }).join(','));
+            await writeToFile(filename, [headers.join(','), ...rows].join('\n'));
         }
         
-        // ============= WRITE TO FILE =============
+        // Write to file
         async function writeToFile(filename, content) {
             const fileHandle = await selectedFolderHandle.getFileHandle(filename, { create: true });
             const writable = await fileHandle.createWritable();
@@ -210,361 +197,167 @@
             await writable.close();
         }
         
-        // ============= EXTRACT DATA FROM TEXT =============
+        // Extract data from text
         async function extractDataFromText(postText, imageUrl) {
-            try {
-                const response = await fetch('/extract_from_text', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        post_text: postText,
-                        image_url: imageUrl
-                    })
-                });
-                const data = await response.json();
-                return data;
-            } catch (error) {
-                console.error('Extraction error:', error);
-                return {
-                    post_date: '❌ Not detected',
-                    locations: '',
-                    action_type: 'other',
-                    people_mentioned: '',
-                    key_quote: '',
-                    source: 'unknown',
-                    comments: []
-                };
-            }
+            const res = await fetch('/extract_from_text', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({post_text: postText, image_url: imageUrl})
+            });
+            return await res.json();
         }
         
-        // ============= MAIN SAVE FUNCTION =============
+        // Save post
         async function savePost() {
             const postText = document.getElementById('postText').value;
             const imageUrl = document.getElementById('imageUrl').value;
             const resultDiv = document.getElementById('result');
-            
-            if (!postText.trim()) {
-                resultDiv.innerHTML = '<div class="error">❌ Please paste a post</div>';
-                return;
-            }
-            
-            // Check if folder is selected
-            if (!selectedFolderHandle) {
-                resultDiv.innerHTML = '<div class="info">📁 Please click "Select Save Folder" first to choose where to save your data...</div>';
-                return;
-            }
-            
-            resultDiv.innerHTML = '<div class="info">💾 Processing and saving to your computer...</div>';
-            
+            if (!postText.trim()) { resultDiv.innerHTML = '<div class="error">❌ Paste a post first</div>'; return; }
+            if (!selectedFolderHandle) { resultDiv.innerHTML = '<div class="info">📁 First click "Select Save Folder"</div>'; return; }
+            resultDiv.innerHTML = '<div class="info">💾 Saving...</div>';
             try {
-                // Extract data from text
                 const extracted = await extractDataFromText(postText, imageUrl);
-                
-                // Load existing posts
-                let existingPosts = [];
-                let existingComments = [];
-                
+                let existingPosts = [], existingComments = [];
                 try {
-                    const postsFile = await selectedFolderHandle.getFileHandle('raymond_posts.csv', { create: false });
-                    const postsContent = await readFileContent(postsFile);
-                    existingPosts = parseCSV(postsContent);
-                } catch (e) {
-                    console.log('No existing posts file, will create new');
-                }
-                
+                    const pf = await selectedFolderHandle.getFileHandle('facebook_posts.csv', { create: false });
+                    existingPosts = parseCSV(await readFileContent(pf));
+                } catch(e) {}
                 try {
-                    const commentsFile = await selectedFolderHandle.getFileHandle('raymond_comments.csv', { create: false });
-                    const commentsContent = await readFileContent(commentsFile);
-                    existingComments = parseCSV(commentsContent);
-                } catch (e) {
-                    console.log('No existing comments file, will create new');
-                }
-                
-                // Create new post
-                const newPostId = existingPosts.length;
+                    const cf = await selectedFolderHandle.getFileHandle('facebook_comments.csv', { create: false });
+                    existingComments = parseCSV(await readFileContent(cf));
+                } catch(e) {}
+                const newId = existingPosts.length;
                 const newPost = {
-                    post_id: newPostId,
-                    post_date: extracted.post_date || '',
+                    post_id: newId,
+                    post_date: extracted.post_date,
                     saved_at: new Date().toISOString(),
-                    raw_text: postText.substring(0, 3000),
-                    location: extracted.locations || '',
-                    action_type: extracted.action_type || 'other',
-                    people_mentioned: extracted.people_mentioned || '',
+                    raw_text: postText.substring(0,3000),
+                    location: extracted.locations,
+                    action_type: extracted.action_type,
+                    people_mentioned: extracted.people_mentioned,
                     emotion: '',
-                    key_quote: extracted.key_quote || '',
+                    key_quote: extracted.key_quote,
                     image_url: imageUrl,
-                    source: extracted.source || 'unknown'
+                    source: extracted.source
                 };
-                
                 existingPosts.push(newPost);
-                
-                // Add comments
-                const comments = extracted.comments || [];
-                comments.forEach(comment => {
+                (extracted.comments || []).forEach(c => {
                     existingComments.push({
-                        post_id: newPostId,
-                        commenter_name: comment.commenter_name || '',
-                        comment_text: comment.comment_text || '',
-                        comment_date: comment.comment_date || '',
-                        sentiment: comment.sentiment || 'neutral'
+                        post_id: newId,
+                        commenter_name: c.commenter_name || '',
+                        comment_text: c.comment_text || '',
+                        comment_date: c.comment_date || '',
+                        sentiment: c.sentiment || 'neutral'
                     });
                 });
-                
-                // Save both files
-                await saveCSVToFile('raymond_posts.csv', existingPosts);
-                await saveCSVToFile('raymond_comments.csv', existingComments);
-                
-                // Show date warning if needed
-                const dateWarningHtml = extracted.post_date === '❌ Not detected' 
-                    ? '<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin-top: 10px; border-radius: 4px;"><strong>⚠️ Date not detected:</strong> Make sure your post has a Facebook date like "14h", "Yesterday", or "April 28 at 5:40 AM"</div>' 
-                    : '';
-                
+                await saveCSVToFile('facebook_posts.csv', existingPosts);
+                await saveCSVToFile('facebook_comments.csv', existingComments);
+                const warn = (!extracted.post_date || extracted.post_date === '❌ Not detected') ? '<div style="background:#fff3cd; padding:10px; margin-top:10px; border-left:4px solid #ffc107;">⚠️ No date detected. Facebook usually shows "14h", "Yesterday", or "April 28 at 5:40 AM".</div>' : '';
                 resultDiv.innerHTML = `
-                    <div class="success">✅ Post saved to your computer!</div>
-                    <div class="extracted">
-                        <strong>📋 Extracted Data:</strong><br>
-                        📅 Date: <strong>${extracted.post_date}</strong><br>
+                    <div class="success" style="background: #c6f6d5; color: #22543d; padding: 12px; border-radius: 8px; margin-bottom: 12px;">✅ Post saved!</div>
+                    <div class="extracted" style="background: #f7fafc; padding: 16px; border-radius: 12px;">
+                        📅 Date: <strong>${extracted.post_date || '—'}</strong><br>
                         📍 Location: ${extracted.locations || '—'}<br>
-                        🏷️ Action: <span class="action-badge">${extracted.action_type}</span><br>
+                        🏷️ Action: <span style="background: #667eea; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">${extracted.action_type}</span><br>
                         👥 People: ${extracted.people_mentioned || '—'}<br>
-                        💬 Key quote: "${extracted.key_quote}"<br>
-                        💬 Comments found: ${comments.length}<br>
-                        📁 Saved to: ${selectedFolderHandle.name}
+                        💬 Key quote: "${extracted.key_quote || ''}"<br>
+                        💬 Comments found: ${(extracted.comments || []).length}<br>
+                        📁 Folder: ${selectedFolderHandle.name}
                     </div>
-                    ${dateWarningHtml}
+                    ${warn}
                 `;
-                
                 document.getElementById('postText').value = '';
                 document.getElementById('imageUrl').value = '';
-                
-                // Refresh stats
                 displayStatsFromPosts(existingPosts);
-                
-            } catch (error) {
-                console.error('Save error:', error);
-                resultDiv.innerHTML = `<div class="error">❌ Error saving: ${error.message}</div>`;
+            } catch(e) {
+                resultDiv.innerHTML = `<div class="error" style="background: #fed7d7; color: #742a2a; padding: 12px; border-radius: 8px;">❌ ${e.message}</div>`;
             }
         }
         
-        // ============= DISPLAY STATS FROM POSTS =============
+        // Display statistics
         function displayStatsFromPosts(posts) {
             const statsDiv = document.getElementById('stats');
-            if (!statsDiv) return;
-            
-            if (!posts || posts.length === 0) {
-                statsDiv.innerHTML = '<p>No posts yet. Save your first post!</p>';
-                return;
-            }
-            
+            if (!posts.length) { statsDiv.innerHTML = '<p>No posts yet.</p>'; return; }
             const actionCounts = {};
-            const dateCounts = {
-                withDate: 0,
-                withoutDate: 0
-            };
-            
-            posts.forEach(post => {
-                const action = post.action_type || 'other';
-                actionCounts[action] = (actionCounts[action] || 0) + 1;
-                
-                if (post.post_date && post.post_date !== '' && post.post_date !== '❌ Not detected') {
-                    dateCounts.withDate++;
-                } else {
-                    dateCounts.withoutDate++;
-                }
+            let withDate = 0, withoutDate = 0;
+            posts.forEach(p => {
+                const a = p.action_type || 'other';
+                actionCounts[a] = (actionCounts[a] || 0) + 1;
+                if (p.post_date && p.post_date !== '' && p.post_date !== '❌ Not detected') withDate++;
+                else withoutDate++;
             });
-            
             statsDiv.innerHTML = `
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number">${posts.length}</div>
-                        <div class="stat-label">Total Posts</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 16px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 28px; font-weight: bold; color: #667eea;">${posts.length}</div>
+                        <div style="font-size: 12px; color: #666;">Total Posts</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${dateCounts.withDate}</div>
-                        <div class="stat-label">With Dates</div>
+                    <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 16px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 28px; font-weight: bold; color: #48bb78;">${withDate}</div>
+                        <div style="font-size: 12px; color: #666;">With Dates</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-number">${dateCounts.withoutDate}</div>
-                        <div class="stat-label">Missing Dates</div>
+                    <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 16px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 28px; font-weight: bold; color: #ed8936;">${withoutDate}</div>
+                        <div style="font-size: 12px; color: #666;">Missing Dates</div>
                     </div>
                 </div>
-                <div class="action-breakdown">
-                    <strong>📍 Actions Tracked:</strong>
-                    <div class="action-tags">
-                        ${Object.entries(actionCounts).map(([action, count]) => 
-                            `<span class="action-tag">${action.replace('_', ' ')}: ${count}</span>`
-                        ).join('')}
+                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e0e0e0;">
+                    <strong>📍 Actions detected:</strong>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+                        ${Object.entries(actionCounts).map(([a,c]) => `<span style="background: #e0e7ff; color: #3730a3; padding: 4px 12px; border-radius: 20px; font-size: 12px;">${a.replace(/_/g,' ')}: ${c}</span>`).join('')}
                     </div>
                 </div>
             `;
         }
         
-        // ============= DEBUG DATE EXTRACTION (OLD) =============
+        // Debug date extraction
         async function debugDate() {
             const postText = document.getElementById('postText').value;
             const resultDiv = document.getElementById('result');
-            
-            if (!postText.trim()) {
-                resultDiv.innerHTML = '<div class="error">❌ Please paste a post first</div>';
-                return;
-            }
-            
-            resultDiv.innerHTML = '<div class="info">🔍 Testing date extraction...</div>';
-            
-            try {
-                const response = await fetch('/debug_date', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({post_text: postText})
-                });
-                const data = await response.json();
-                
-                resultDiv.innerHTML = `
-                    <div class="extracted">
-                        <strong>🔍 Date Debug Info:</strong><br>
-                        📅 Extracted date: <strong>${data.extracted_date || 'NOT FOUND'}</strong><br>
-                        📝 First few lines:<br>
-                        <code style="font-size: 11px; word-wrap: break-word; display: block; background: #f0f0f0; padding: 8px; margin-top: 5px;">${data.raw_text_preview || '...'}</code>
-                        <br>
-                        💡 <strong>Tip:</strong> Make sure your post contains a Facebook date like:<br>
-                        • "14h" or "2h ago" (hours ago)<br>
-                        • "Yesterday at 5:40 AM"<br>
-                        • "April 28 at 5:40 AM"<br>
-                        • "just now"
-                    </div>
-                `;
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
-            }
+            if (!postText.trim()) { resultDiv.innerHTML = '<div class="error">❌ Paste a post first</div>'; return; }
+            resultDiv.innerHTML = '<div class="info">🔍 Testing...</div>';
+            const res = await fetch('/debug_date', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({post_text:postText}) });
+            const data = await res.json();
+            resultDiv.innerHTML = `
+                <div class="extracted" style="background: #f7fafc; padding: 16px; border-radius: 12px;">
+                    <strong>🔍 Date extraction debug</strong><br>
+                    📅 Extracted: <strong>${data.extracted_date || 'NOT FOUND'}</strong><br>
+                    📝 First lines:<br><code style="font-size:11px; display: block; background: #f0f0f0; padding: 8px; margin-top: 5px;">${(data.raw_text_preview || '').replace(/</g, '&lt;')}</code><br>
+                    💡 Tip: Facebook dates look like "14h", "Yesterday", "April 28 at 5:40 AM"
+                </div>
+            `;
         }
         
-        // ============= NEW TEST DATE EXTRACTION (IMPROVED) =============
+        // Advanced date test
         async function testNewDateParser() {
             const postText = document.getElementById('postText').value;
             const resultDiv = document.getElementById('result');
-            
-            if (!postText.trim()) {
-                resultDiv.innerHTML = '<div class="error">❌ Please paste a post first</div>';
-                return;
-            }
-            
-            resultDiv.innerHTML = '<div class="info">🧪 Testing new date parser (line-based + regex)...</div>';
-            
-            try {
-                const response = await fetch('/test_date_extraction', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({post_text: postText})
-                });
-                const data = await response.json();
-                
-                const successIcon = data.success ? '✅' : '❌';
-                const successText = data.success ? 'Date found!' : 'No date detected';
-                const successColor = data.success ? '#22543d' : '#742a2a';
-                
-                resultDiv.innerHTML = `
-                    <div class="extracted" style="border-left-color: ${successColor};">
-                        <strong>🧪 New Date Parser Results:</strong><br>
-                        ${successIcon} Status: <strong style="color: ${successColor};">${successText}</strong><br>
-                        📅 Line-based extraction: <strong>${data.line_based_extraction || 'NOT FOUND'}</strong><br>
-                        📅 Regex extraction: <strong>${data.regex_extraction || 'NOT FOUND'}</strong><br>
-                        📏 Text length: ${data.raw_text_length} characters<br>
-                        <br>
-                        <strong>📝 First 5 lines:</strong><br>
-                        <code style="font-size: 11px; word-wrap: break-word; display: block; background: #f0f0f0; padding: 8px; margin-top: 5px;">${data.first_5_lines.map(line => `• ${line}`).join('<br>') || '...'}</code>
-                        <br>
-                        💡 <strong>How to format dates for best results:</strong><br>
-                        • <strong>Hours ago:</strong> "14h", "2h", "3 hours ago"<br>
-                        • <strong>Days ago:</strong> "2d", "yesterday"<br>
-                        • <strong>Exact dates:</strong> "April 28 at 5:40 AM"<br>
-                        • <strong>Just now:</strong> "just now" or "now"
-                    </div>
-                `;
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
-            }
+            if (!postText.trim()) { resultDiv.innerHTML = '<div class="error">❌ Paste a post first</div>'; return; }
+            resultDiv.innerHTML = '<div class="info">🧪 Testing advanced parser...</div>';
+            const res = await fetch('/test_date_extraction', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({post_text:postText}) });
+            const data = await res.json();
+            const ok = data.success ? '✅ Date found' : '❌ No date detected';
+            resultDiv.innerHTML = `
+                <div class="extracted" style="background: #f7fafc; padding: 16px; border-radius: 12px;">
+                    <strong>🧪 Advanced date test</strong><br>
+                    ${ok}<br>
+                    📅 Line‑based: ${data.line_based_extraction || '—'}<br>
+                    📅 Regex: ${data.regex_extraction || '—'}<br>
+                    <strong>📝 First 5 lines:</strong><br><code style="font-size:11px; display: block; background: #f0f0f0; padding: 8px; margin-top: 5px;">${(data.first_5_lines || []).map(l => '• '+l).join('<br>')}</code>
+                </div>
+            `;
         }
         
-        // ============= EXPORT FUNCTIONS =============
-        async function exportPostsCSV() {
-            if (!selectedFolderHandle) {
-                alert('Please select a folder first');
-                return;
-            }
-            
-            try {
-                const postsFile = await selectedFolderHandle.getFileHandle('raymond_posts.csv', { create: false });
-                const file = await postsFile.getFile();
-                const url = URL.createObjectURL(file);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'raymond_posts.csv';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            } catch (error) {
-                alert('No posts file found. Save some posts first.');
-            }
-        }
-        
-        async function exportCommentsCSV() {
-            if (!selectedFolderHandle) {
-                alert('Please select a folder first');
-                return;
-            }
-            
-            try {
-                const commentsFile = await selectedFolderHandle.getFileHandle('raymond_comments.csv', { create: false });
-                const file = await commentsFile.getFile();
-                const url = URL.createObjectURL(file);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'raymond_comments.csv';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            } catch (error) {
-                alert('No comments file found. Save some posts first.');
-            }
-        }
-        
-        function viewSqliteData() {
-            alert('📁 Your data is saved as CSV files in your selected folder.\n\nYou can open them with Excel or any text editor.\n\n📅 Date Extraction Tips:\n• "14h" → converts to absolute date/time\n• "Yesterday" → yesterday at midnight\n• "April 28 at 5:40 AM" → exact date/time\n• If no date found → shows "❌ Not detected"\n\nSQLite is only used when running locally.');
-        }
-        
-        // ============= LOAD STATS (DEFAULT) =============
-        async function loadStats() {
-            // Stats will be loaded when user selects a folder
-            const statsDiv = document.getElementById('stats');
-            if (statsDiv) {
-                statsDiv.innerHTML = '<p>📁 Click "Select Save Folder" to load your saved posts...</p>';
-            }
-        }
-        
-        // ============= RESTORE PREVIOUS FOLDER SELECTION =============
-        async function restoreFolderSelection() {
-            const savedFolderName = localStorage.getItem('selectedFolderName');
-            if (savedFolderName) {
-                const statusSpan = document.getElementById('folderStatus');
-                statusSpan.innerHTML = `📁 Previously used: ${savedFolderName} (click button to reselect)`;
-                statusSpan.style.color = '#666';
-            }
-        }
-        
-        // ============= EVENT LISTENERS =============
+        // Event listeners
         document.getElementById('saveBtn').addEventListener('click', savePost);
         document.getElementById('selectFolderBtn').addEventListener('click', selectFolder);
         document.getElementById('debugBtn').addEventListener('click', debugDate);
         document.getElementById('testDateBtn').addEventListener('click', testNewDateParser);
-        document.getElementById('exportPostsBtn').addEventListener('click', exportPostsCSV);
-        document.getElementById('exportCommentsBtn').addEventListener('click', exportCommentsCSV);
-        document.getElementById('viewSqliteBtn').addEventListener('click', viewSqliteData);
         
-        // Initialize
-        loadStats();
-        restoreFolderSelection();
+        // Restore previous folder selection hint
+        (async () => {
+            const saved = localStorage.getItem('selectedFolderName');
+            if (saved) document.getElementById('folderStatus').innerHTML = `📁 Previously used: ${saved} (click button to reselect)`;
+        })();
     </script>
 </body>
 </html>
